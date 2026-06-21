@@ -11,7 +11,7 @@ A RESTful backend application for an online bookstore built with Go. This projec
 * **Go (Golang)**
 * **Gin** (HTTP Framework)
 * **GORM** (ORM)
-* **PostgreSQL**
+* **PostgreSQL** (run in docker)
 * **JWT Authentication & Authorization**
 * **Docker**
 * **Swagger/OpenAPI**
@@ -218,60 +218,8 @@ Swagger documentation is available after running the project:
 
 ## 🧪 Testing
 
-Integration tests are implemented for critical API endpoints, covering:
+Integration tests are implemented for all API endpoints, covering all important test cases.
 
-* Authentication
-* Authorization
-* Validation
-* Database state verification
-* Success and failure scenarios
 
----
-
-## ⚙️ Environment Variables
-
-Create a `.env` file:
-
-```env
-DB_HOST=
-DB_PORT=
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-
-JWT_SECRET=
-
-ACCESS_TOKEN_DURATION=
-REFRESH_TOKEN_DURATION=
-```
-
----
-
-## 🐳 Running With Docker
-
-```bash
-docker compose up --build
-```
-
----
-
-## 🎯 Project Goals
-
-This project was built to practice and demonstrate:
-
-* Backend development with Go
-* REST API design
-* Clean Architecture
-* Authentication & Authorization
-* Database design
-* Testing
-* Dockerization
-* Production-oriented backend practices
-
----
-
-## 👨‍💻 Author
-
-Abdullah Mahgoub
 
 Computer Science Graduate | Go Backend Developer
