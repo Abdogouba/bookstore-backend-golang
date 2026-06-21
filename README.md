@@ -219,7 +219,3 @@ Swagger documentation is available after running the project:
 ## 🧪 Testing
 
 Integration tests are implemented for all API endpoints, covering all important test cases.
-
-
-
-Computer Science Graduate | Go Backend Developer
