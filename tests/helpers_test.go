@@ -3,10 +3,12 @@ package tests
 import (
 	"bookstore-backend/config"
 	"bookstore-backend/database"
+	"bookstore-backend/internal/dto"
 	"bookstore-backend/internal/models"
 	"bookstore-backend/internal/routes"
 	"bookstore-backend/internal/utils"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -451,4 +453,40 @@ func createDeleteBookRequest(
 	}
 
 	return req
+}
+
+func createOrderRequest(payload dto.CreateOrderRequest, token string) *http.Request {
+
+	// Convert request body to JSON
+	body, _ := json.Marshal(payload)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/orders",
+		bytes.NewBuffer(body),
+	)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return req
+}
+
+func seedBook(title string, stock int, price float64) models.Book {
+
+	book := models.Book{
+		Title:     title,
+		Author:    "Author",
+		Publisher: "Publisher",
+		Category:  "Programming",
+		Price:     price,
+		Stock:     stock,
+	}
+
+	testDB.Create(&book)
+
+	return book
 }

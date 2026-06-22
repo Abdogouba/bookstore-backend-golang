@@ -84,4 +84,15 @@ func SetupRoutes(
 			bookHandler.DeleteBook,
 		)
 	}
+
+	orderHandler := handlers.NewOrderHandler(db)
+	orders := router.Group("/orders")
+	{
+		orders.POST(
+			"",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("user"),
+			orderHandler.CreateOrder,
+		)
+	}
 }

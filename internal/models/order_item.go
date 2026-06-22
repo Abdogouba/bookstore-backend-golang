@@ -18,4 +18,9 @@ type OrderItem struct {
 
 	// Store price at purchase time.
 	Price float64 `gorm:"type:decimal(10,2);not null"`
+
+	Title     string `gorm:"size:255"`
+	Author    string `gorm:"size:255"`
+	Publisher string `gorm:"size:255"`
+	ImagePath string `gorm:"size:500"`
 }

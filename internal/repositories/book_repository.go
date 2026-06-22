@@ -137,3 +137,30 @@ func (r *BookRepository) Delete(
 
 	return r.db.Delete(book).Error
 }
+
+func (r *BookRepository) GetByIDs(
+	bookIDs []uint,
+) ([]models.Book, error) {
+
+	var books []models.Book
+
+	err := r.db.
+		Where(
+			"id IN ?",
+			bookIDs,
+		).
+		Find(&books).
+		Error
+
+	return books, err
+}
+
+func (r *BookRepository) Update(
+	tx *gorm.DB,
+	book *models.Book,
+) error {
+
+	return tx.
+		Save(book).
+		Error
+}

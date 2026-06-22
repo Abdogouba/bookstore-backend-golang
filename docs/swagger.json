@@ -601,6 +601,90 @@
                 }
             }
         },
+        "/orders": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new order for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Create order",
+                "parameters": [
+                    {
+                        "description": "Order Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/change-password": {
             "put": {
                 "security": [
@@ -946,6 +1030,65 @@
                 }
             }
         },
+        "dto.CreateOrderItemRequest": {
+            "type": "object",
+            "required": [
+                "book_id",
+                "quantity"
+            ],
+            "properties": {
+                "book_id": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CreateOrderRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "items"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CreateOrderItemRequest"
+                    }
+                }
+            }
+        },
+        "dto.CreateOrderResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderItemResponse"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "total_price": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.DeleteProfileRequest": {
             "type": "object",
             "required": [
@@ -992,6 +1135,32 @@
             "type": "object",
             "properties": {
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderItemResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "book_id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "publisher": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "title": {
                     "type": "string"
                 }
             }

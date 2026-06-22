@@ -34,3 +34,13 @@ func (r *OrderRepository) HasActiveOrders(userID uint) (bool, error) {
 
 	return count > 0, nil
 }
+
+func (r *OrderRepository) Create(
+	tx *gorm.DB,
+	order *models.Order,
+) error {
+
+	return tx.
+		Create(order).
+		Error
+}
