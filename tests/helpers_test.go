@@ -490,3 +490,61 @@ func seedBook(title string, stock int, price float64) models.Book {
 
 	return book
 }
+
+func createUserOrder(
+	t *testing.T,
+	userID uint,
+	status string,
+	totalPrice float64,
+	quantity int,
+) models.Order {
+
+	// -------------------------
+	// Create Book
+	// -------------------------
+
+	book := models.Book{
+		Title:     "Clean Code",
+		Author:    "Robert Martin",
+		Category:  "Programming",
+		Price:     100,
+		Stock:     100,
+		Publisher: "Prentice Hall",
+	}
+
+	err := testDB.Create(&book).Error
+	assert.NoError(t, err)
+
+	// -------------------------
+	// Create Order
+	// -------------------------
+
+	order := models.Order{
+		UserID:          userID,
+		Status:          status,
+		ShippingAddress: "Cairo",
+		TotalPrice:      totalPrice,
+	}
+
+	err = testDB.Create(&order).Error
+	assert.NoError(t, err)
+
+	// -------------------------
+	// Create Order Item
+	// -------------------------
+
+	orderItem := models.OrderItem{
+		OrderID:   order.ID,
+		BookID:    book.ID,
+		Quantity:  quantity,
+		Price:     book.Price,
+		Title:     book.Title,
+		Author:    book.Author,
+		Publisher: book.Publisher,
+	}
+
+	err = testDB.Create(&orderItem).Error
+	assert.NoError(t, err)
+
+	return order
+}

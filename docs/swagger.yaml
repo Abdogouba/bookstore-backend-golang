@@ -201,6 +201,32 @@ definitions:
     - email
     - name
     type: object
+  dto.UserOrderListItemResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      items_count:
+        type: integer
+      status:
+        type: string
+      total_price:
+        type: number
+    type: object
+  dto.UserOrdersResponse:
+    properties:
+      orders:
+        items:
+          $ref: '#/definitions/dto.UserOrderListItemResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   dto.UserResponse:
     properties:
       created_at:
@@ -614,6 +640,47 @@ paths:
       tags:
       - Books
   /orders:
+    get:
+      description: Returns paginated orders of the authenticated user
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserOrdersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: View my orders
+      tags:
+      - Orders
     post:
       consumes:
       - application/json

@@ -94,5 +94,12 @@ func SetupRoutes(
 			middleware.RoleMiddleware("user"),
 			orderHandler.CreateOrder,
 		)
+
+		orders.GET(
+			"",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("user"),
+			orderHandler.GetMyOrders,
+		)
 	}
 }

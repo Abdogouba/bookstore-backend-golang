@@ -44,3 +44,60 @@ func (r *OrderRepository) Create(
 		Create(order).
 		Error
 }
+
+// GetUserOrders returns paginated orders
+// belonging to a specific user.
+func (r *OrderRepository) GetUserOrders(
+	userID uint,
+	page int,
+	pageSize int,
+) (
+	[]models.Order,
+	int64,
+	error,
+) {
+
+	var orders []models.Order
+
+	var total int64
+
+	// -------------------------
+	// Count total
+	// -------------------------
+
+	err := r.db.
+		Model(&models.Order{}).
+		Where("user_id = ?", userID).
+		Count(&total).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// -------------------------
+	// Pagination
+	// -------------------------
+
+	offset :=
+		(page - 1) * pageSize
+
+	// -------------------------
+	// Query orders
+	// -------------------------
+
+	err = r.db.
+		Preload("OrderItems").
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&orders).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
+}

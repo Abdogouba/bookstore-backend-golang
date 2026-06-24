@@ -3,6 +3,7 @@ package handlers
 import (
 	"bookstore-backend/internal/dto"
 	"bookstore-backend/internal/services"
+	"bookstore-backend/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -142,6 +143,84 @@ func (h *OrderHandler) CreateOrder(
 
 	c.JSON(
 		http.StatusCreated,
+		response,
+	)
+}
+
+// GetMyOrders godoc
+//
+// @Summary View my orders
+// @Description Returns paginated orders of the authenticated user
+// @Tags Orders
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} dto.UserOrdersResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /orders [get]
+func (h *OrderHandler) GetMyOrders(
+	c *gin.Context,
+) {
+
+	// -------------------------
+	// Query params
+	// -------------------------
+
+	var query dto.GetMyOrdersQuery
+
+	if err :=
+		c.ShouldBindQuery(
+			&query,
+		); err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// User ID
+	// -------------------------
+
+	userID :=
+		utils.GetUserID(c)
+
+	// -------------------------
+	// Service
+	// -------------------------
+
+	response, err :=
+		h.orderService.GetUserOrders(
+			userID,
+			query,
+		)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": "internal server error",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Success
+	// -------------------------
+
+	c.JSON(
+		http.StatusOK,
 		response,
 	)
 }

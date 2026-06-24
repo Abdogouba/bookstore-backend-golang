@@ -362,3 +362,96 @@ func (s *OrderService) CreateOrder(
 		CreatedAt: order.CreatedAt,
 	}, nil
 }
+
+func (s *OrderService) GetUserOrders(
+	userID uint,
+	query dto.GetMyOrdersQuery,
+) (
+	*dto.UserOrdersResponse,
+	error,
+) {
+
+	// -------------------------
+	// Default pagination
+	// -------------------------
+
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+
+	if query.PageSize <= 0 {
+		query.PageSize = 10
+	}
+
+	if query.PageSize > 100 {
+		query.PageSize = 100
+	}
+
+	// -------------------------
+	// Query database
+	// -------------------------
+
+	orders,
+		total,
+		err :=
+		s.orderRepo.GetUserOrders(
+			userID,
+			query.Page,
+			query.PageSize,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// -------------------------
+	// Build response
+	// -------------------------
+
+	responseOrders :=
+		make(
+			[]dto.UserOrderListItemResponse,
+			0,
+			len(orders),
+		)
+
+	for _, order := range orders {
+
+		responseOrders =
+			append(
+				responseOrders,
+				dto.UserOrderListItemResponse{
+					ID: order.ID,
+
+					Status: order.Status,
+
+					TotalPrice: order.TotalPrice,
+
+					ItemsCount: calculateTotalItems(order.OrderItems),
+
+					CreatedAt: order.CreatedAt,
+				},
+			)
+	}
+
+	response :=
+		dto.UserOrdersResponse{
+			Orders: responseOrders,
+
+			Page: query.Page,
+
+			PageSize: query.PageSize,
+
+			Total: total,
+		}
+
+	return &response, nil
+}
+
+func calculateTotalItems(orderItems []models.OrderItem) int {
+	count := 0
+	for _, orderItem := range orderItems {
+		count = count + orderItem.Quantity
+	}
+	return count
+}
