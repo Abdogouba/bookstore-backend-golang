@@ -5,6 +5,7 @@ import (
 	"bookstore-backend/internal/services"
 	"bookstore-backend/internal/utils"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -204,6 +205,99 @@ func (h *OrderHandler) GetMyOrders(
 		)
 
 	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": "internal server error",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Success
+	// -------------------------
+
+	c.JSON(
+		http.StatusOK,
+		response,
+	)
+}
+
+// GetMyOrder godoc
+//
+// @Summary View one of my orders
+// @Description Returns a single order belonging to the authenticated user
+// @Tags Orders
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Order ID"
+// @Success 200 {object} dto.UserOrderDetailsResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /orders/{id} [get]
+func (h *OrderHandler) GetMyOrder(
+	c *gin.Context,
+) {
+
+	// -------------------------
+	// Parse Order ID
+	// -------------------------
+
+	orderID, err :=
+		strconv.ParseUint(
+			c.Param("id"),
+			10,
+			64,
+		)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": "invalid order id",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// User ID
+	// -------------------------
+
+	userID :=
+		utils.GetUserID(c)
+
+	// -------------------------
+	// Service
+	// -------------------------
+
+	response, err :=
+		h.orderService.GetUserOrderByID(
+			uint(orderID),
+			userID,
+		)
+
+	if err != nil {
+
+		if err.Error() ==
+			"order not found" {
+
+			c.JSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+
+			return
+		}
 
 		c.JSON(
 			http.StatusInternalServerError,

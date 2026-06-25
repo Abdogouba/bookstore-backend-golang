@@ -548,3 +548,25 @@ func createUserOrder(
 
 	return order
 }
+
+func createGetOrderRequest(
+	token string,
+	orderID uint,
+) *http.Request {
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("/orders/%d", orderID),
+		nil,
+	)
+
+	if token != "" {
+
+		req.Header.Set(
+			"Authorization",
+			"Bearer "+token,
+		)
+	}
+
+	return req
+}

@@ -101,5 +101,12 @@ func SetupRoutes(
 			middleware.RoleMiddleware("user"),
 			orderHandler.GetMyOrders,
 		)
+
+		orders.GET(
+			"/:id",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("user"),
+			orderHandler.GetMyOrder,
+		)
 	}
 }

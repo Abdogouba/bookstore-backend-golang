@@ -737,3 +737,411 @@ func TestGetMyOrdersSuccess(t *testing.T) {
 		orderResponse.CreatedAt.IsZero(),
 	)
 }
+
+func TestGetMyOrder_NoToken(
+	t *testing.T,
+) {
+
+	cleanDatabase()
+
+	// -------------------------
+	// Arrange
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	req := createGetOrderRequest(
+		"",
+		order.ID,
+	)
+
+	// -------------------------
+	// Act
+	// -------------------------
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		rec,
+		req,
+	)
+
+	// -------------------------
+	// Assert
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusUnauthorized,
+		rec.Code,
+	)
+}
+
+func TestGetMyOrder_AdminForbidden(
+	t *testing.T,
+) {
+
+	cleanDatabase()
+
+	// -------------------------
+	// Arrange
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	adminToken :=
+		getAdminToken(t)
+
+	req := createGetOrderRequest(
+		adminToken,
+		order.ID,
+	)
+
+	// -------------------------
+	// Act
+	// -------------------------
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		rec,
+		req,
+	)
+
+	// -------------------------
+	// Assert
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusForbidden,
+		rec.Code,
+	)
+}
+
+func TestGetMyOrder_OrderNotFound(
+	t *testing.T,
+) {
+
+	cleanDatabase()
+
+	// -------------------------
+	// Arrange
+	// -------------------------
+
+	user := createTestUser(t)
+
+	token, err :=
+		utils.GenerateAccessToken(
+			user.ID,
+			user.Role,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	req := createGetOrderRequest(
+		token,
+		999999,
+	)
+
+	// -------------------------
+	// Act
+	// -------------------------
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		rec,
+		req,
+	)
+
+	// -------------------------
+	// Assert
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusNotFound,
+		rec.Code,
+	)
+}
+
+func TestGetMyOrder_OrderBelongsToAnotherUser(
+	t *testing.T,
+) {
+
+	cleanDatabase()
+
+	// -------------------------
+	// Arrange
+	// -------------------------
+
+	user1 := createTestUser(t)
+
+	user2 := models.User{
+		Name:         "Omar",
+		Email:        "omar@test.com",
+		PasswordHash: user1.PasswordHash,
+		PhoneNumber:  "01000000000",
+		Role:         "user",
+	}
+
+	err := testDB.Create(&user2).Error
+	assert.NoError(t, err)
+
+	order := createUserOrder(
+		t,
+		user2.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	token, err := utils.GenerateAccessToken(
+		user1.ID,
+		user1.Role,
+	)
+
+	assert.NoError(t, err)
+
+	req := createGetOrderRequest(
+		token,
+		order.ID,
+	)
+
+	// -------------------------
+	// Act
+	// -------------------------
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		rec,
+		req,
+	)
+
+	// -------------------------
+	// Assert
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusNotFound,
+		rec.Code,
+	)
+}
+
+func TestGetMyOrder_Success(
+	t *testing.T,
+) {
+
+	cleanDatabase()
+
+	// -------------------------
+	// Arrange
+	// -------------------------
+
+	user := createTestUser(t)
+
+	book := models.Book{
+		Title:     "Clean Code",
+		Author:    "Robert Martin",
+		Publisher: "Prentice Hall",
+		Category:  "Programming",
+		Price:     100,
+		Stock:     20,
+		ImagePath: "/uploads/books/clean-code.jpg",
+	}
+
+	err := testDB.Create(&book).Error
+	assert.NoError(t, err)
+
+	order := models.Order{
+		UserID:          user.ID,
+		Status:          "pending",
+		ShippingAddress: "Cairo",
+		TotalPrice:      200,
+	}
+
+	err = testDB.Create(&order).Error
+	assert.NoError(t, err)
+
+	item := models.OrderItem{
+		OrderID:   order.ID,
+		BookID:    book.ID,
+		Quantity:  2,
+		Price:     book.Price,
+		Title:     book.Title,
+		Author:    book.Author,
+		Publisher: book.Publisher,
+		ImagePath: book.ImagePath,
+	}
+
+	err = testDB.Create(&item).Error
+	assert.NoError(t, err)
+
+	token, err := utils.GenerateAccessToken(
+		user.ID,
+		user.Role,
+	)
+
+	assert.NoError(t, err)
+
+	req := createGetOrderRequest(
+		token,
+		order.ID,
+	)
+
+	// -------------------------
+	// Act
+	// -------------------------
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		rec,
+		req,
+	)
+
+	// -------------------------
+	// Assert Status
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		rec.Code,
+	)
+
+	// -------------------------
+	// Parse Response
+	// -------------------------
+
+	var response dto.UserOrderDetailsResponse
+
+	err = json.Unmarshal(
+		rec.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(t, err)
+
+	// -------------------------
+	// Order Fields
+	// -------------------------
+
+	assert.Equal(
+		t,
+		order.ID,
+		response.ID,
+	)
+
+	assert.Equal(
+		t,
+		order.Status,
+		response.Status,
+	)
+
+	assert.Equal(
+		t,
+		order.ShippingAddress,
+		response.Address,
+	)
+
+	assert.Equal(
+		t,
+		order.TotalPrice,
+		response.TotalPrice,
+	)
+
+	assert.False(
+		t,
+		response.CreatedAt.IsZero(),
+	)
+
+	assert.False(
+		t,
+		response.UpdatedAt.IsZero(),
+	)
+
+	// -------------------------
+	// Order Items
+	// -------------------------
+
+	assert.Len(
+		t,
+		response.Items,
+		1,
+	)
+
+	responseItem := response.Items[0]
+
+	assert.Equal(
+		t,
+		item.ID,
+		responseItem.ID,
+	)
+
+	assert.Equal(
+		t,
+		item.BookID,
+		responseItem.BookID,
+	)
+
+	assert.Equal(
+		t,
+		item.Quantity,
+		responseItem.Quantity,
+	)
+
+	assert.Equal(
+		t,
+		item.Price,
+		responseItem.Price,
+	)
+
+	assert.Equal(
+		t,
+		item.Title,
+		responseItem.Title,
+	)
+
+	assert.Equal(
+		t,
+		item.Author,
+		responseItem.Author,
+	)
+
+	assert.Equal(
+		t,
+		item.Publisher,
+		responseItem.Publisher,
+	)
+
+	assert.Equal(
+		t,
+		item.ImagePath,
+		responseItem.ImagePath,
+	)
+}

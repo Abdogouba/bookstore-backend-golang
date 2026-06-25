@@ -101,3 +101,32 @@ func (r *OrderRepository) GetUserOrders(
 
 	return orders, total, nil
 }
+
+// GetUserOrderByID returns a single order
+// that belongs to the specified user.
+func (r *OrderRepository) GetUserOrderByID(
+	orderID uint,
+	userID uint,
+) (
+	*models.Order,
+	error,
+) {
+
+	var order models.Order
+
+	err := r.db.
+		Preload("OrderItems").
+		Where(
+			"id = ? AND user_id = ?",
+			orderID,
+			userID,
+		).
+		First(&order).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}

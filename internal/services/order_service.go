@@ -455,3 +455,97 @@ func calculateTotalItems(orderItems []models.OrderItem) int {
 	}
 	return count
 }
+
+func (s *OrderService) GetUserOrderByID(
+	orderID uint,
+	userID uint,
+) (
+	*dto.UserOrderDetailsResponse,
+	error,
+) {
+
+	// -------------------------
+	// Query Order
+	// -------------------------
+
+	order, err :=
+		s.orderRepo.GetUserOrderByID(
+			orderID,
+			userID,
+		)
+
+	if err != nil {
+
+		if errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		) {
+
+			return nil,
+				errors.New(
+					"order not found",
+				)
+		}
+
+		return nil, err
+	}
+
+	// -------------------------
+	// Build Items
+	// -------------------------
+
+	items :=
+		make(
+			[]dto.UserOrderDetailsItemResponse,
+			0,
+			len(order.OrderItems),
+		)
+
+	for _, item := range order.OrderItems {
+
+		items =
+			append(
+				items,
+				dto.UserOrderDetailsItemResponse{
+					ID: item.ID,
+
+					BookID: item.BookID,
+
+					Quantity: item.Quantity,
+
+					Price: item.Price,
+
+					Title: item.Title,
+
+					Author: item.Author,
+
+					Publisher: item.Publisher,
+
+					ImagePath: item.ImagePath,
+				},
+			)
+	}
+
+	// -------------------------
+	// Response
+	// -------------------------
+
+	response :=
+		dto.UserOrderDetailsResponse{
+			ID: order.ID,
+
+			Status: order.Status,
+
+			Address: order.ShippingAddress,
+
+			TotalPrice: order.TotalPrice,
+
+			CreatedAt: order.CreatedAt,
+
+			UpdatedAt: order.UpdatedAt,
+
+			Items: items,
+		}
+
+	return &response, nil
+}
