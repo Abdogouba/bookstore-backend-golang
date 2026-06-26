@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"bookstore-backend/internal/dto"
 	"bookstore-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -129,4 +130,103 @@ func (r *OrderRepository) GetUserOrderByID(
 	}
 
 	return &order, nil
+}
+
+// GetAllOrders returns paginated orders
+// with optional user name search
+// and status filter.
+func (r *OrderRepository) GetAllOrders(
+	query dto.AdminGetOrdersQuery,
+) (
+	[]models.Order,
+	int64,
+	error,
+) {
+
+	var orders []models.Order
+
+	var total int64
+
+	// -------------------------
+	// Start query
+	// -------------------------
+
+	db := r.db.
+		    Model(&models.Order{}).
+			Joins("JOIN users ON users.id = orders.user_id")
+
+	// -------------------------
+	// Search user name
+	// -------------------------
+
+	if query.UserName != "" {
+
+		db =
+			db.Where(
+				"users.name ILIKE ?",
+				"%"+query.UserName+"%",
+			)
+	}
+
+	// -------------------------
+	// Filter status
+	// -------------------------
+
+	if query.Status != "" {
+
+		db =
+			db.Where(
+				"orders.status = ?",
+				query.Status,
+			)
+	}
+
+	// -------------------------
+	// Count total
+	// -------------------------
+
+	err :=
+		db.
+			Count(&total).
+			Error
+
+	if err != nil {
+
+		return nil,
+			0,
+			err
+	}
+
+	// -------------------------
+	// Pagination
+	// -------------------------
+
+	offset :=
+		(query.Page - 1) *
+			query.PageSize
+
+	// -------------------------
+	// Query Orders
+	// -------------------------
+
+	err =
+		db.
+			Preload("User").
+			Preload("OrderItems").
+			Order("orders.created_at DESC").
+			Offset(offset).
+			Limit(query.PageSize).
+			Find(&orders).
+			Error
+
+	if err != nil {
+
+		return nil,
+			0,
+			err
+	}
+
+	return orders,
+		total,
+		nil
 }

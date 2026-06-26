@@ -549,3 +549,97 @@ func (s *OrderService) GetUserOrderByID(
 
 	return &response, nil
 }
+
+func (s *OrderService) GetAllOrders(
+	query dto.AdminGetOrdersQuery,
+) (
+	*dto.AdminOrdersResponse,
+	error,
+) {
+
+	// -------------------------
+	// Default Pagination
+	// -------------------------
+
+	if query.Page <= 0 {
+
+		query.Page = 1
+	}
+
+	if query.PageSize <= 0 {
+
+		query.PageSize = 10
+	}
+
+	if query.PageSize > 100 {
+
+		query.PageSize = 100
+	}
+
+	// -------------------------
+	// Repository
+	// -------------------------
+
+	orders,
+		total,
+		err :=
+		s.orderRepo.GetAllOrders(
+			query,
+		)
+
+	if err != nil {
+
+		return nil,
+			err
+	}
+
+	// -------------------------
+	// Build Response
+	// -------------------------
+
+	responseOrders :=
+		make(
+			[]dto.AdminOrderListItemResponse,
+			0,
+			len(orders),
+		)
+
+	for _, order := range orders {
+
+		responseOrders =
+			append(
+				responseOrders,
+				dto.AdminOrderListItemResponse{
+					ID: order.ID,
+
+					UserName: order.User.Name,
+
+					Status: order.Status,
+
+					Address: order.ShippingAddress,
+
+					TotalPrice: order.TotalPrice,
+
+					ItemsCount: calculateTotalItems(
+						order.OrderItems,
+					),
+
+					CreatedAt: order.CreatedAt,
+				},
+			)
+	}
+
+	response :=
+		dto.AdminOrdersResponse{
+			Orders: responseOrders,
+
+			Page: query.Page,
+
+			PageSize: query.PageSize,
+
+			Total: total,
+		}
+
+	return &response,
+		nil
+}

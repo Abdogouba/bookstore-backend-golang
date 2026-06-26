@@ -318,3 +318,76 @@ func (h *OrderHandler) GetMyOrder(
 		response,
 	)
 }
+
+// GetAllOrders godoc
+//
+// @Summary View all orders
+// @Description Returns paginated orders for the admin
+// @Tags Orders
+// @Produce json
+// @Security BearerAuth
+// @Param user_name query string false "Search by user name"
+// @Param status query string false "Filter by status"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} dto.AdminOrdersResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /admin/orders [get]
+func (h *OrderHandler) GetAllOrders(
+	c *gin.Context,
+) {
+
+	// -------------------------
+	// Query Params
+	// -------------------------
+
+	var query dto.AdminGetOrdersQuery
+
+	if err :=
+		c.ShouldBindQuery(
+			&query,
+		); err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Service
+	// -------------------------
+
+	response, err :=
+		h.orderService.GetAllOrders(
+			query,
+		)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": "internal server error",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Success
+	// -------------------------
+
+	c.JSON(
+		http.StatusOK,
+		response,
+	)
+}

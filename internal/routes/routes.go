@@ -109,4 +109,16 @@ func SetupRoutes(
 			orderHandler.GetMyOrder,
 		)
 	}
+
+	admin := router.Group("/admin")
+	{
+		admin.GET(
+			"/orders",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("admin"),
+			orderHandler.GetAllOrders,
+		)
+	}
 }
+
+

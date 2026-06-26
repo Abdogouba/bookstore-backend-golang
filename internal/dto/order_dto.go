@@ -104,3 +104,39 @@ type UserOrderDetailsResponse struct {
 
 	Items []UserOrderDetailsItemResponse `json:"items"`
 }
+
+type AdminGetOrdersQuery struct {
+	UserName string `form:"user_name"`
+
+	Status string `form:"status"`
+
+	Page int `form:"page"`
+
+	PageSize int `form:"page_size"`
+}
+
+type AdminOrderListItemResponse struct {
+	ID uint `json:"id"`
+
+	UserName string `json:"user_name"`
+
+	Status string `json:"status"`
+
+	Address string `json:"address"`
+
+	TotalPrice float64 `json:"total_price"`
+
+	ItemsCount int `json:"items_count"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AdminOrdersResponse struct {
+	Orders []AdminOrderListItemResponse `json:"orders"`
+
+	Page int `json:"page"`
+
+	PageSize int `json:"page_size"`
+
+	Total int64 `json:"total"`
+}

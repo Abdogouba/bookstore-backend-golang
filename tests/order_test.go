@@ -1145,3 +1145,912 @@ func TestGetMyOrder_Success(
 		responseItem.ImagePath,
 	)
 }
+
+func TestAdminGetOrders_NoToken(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Request without token
+	// -------------------------
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/admin/orders",
+		nil,
+	)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusUnauthorized,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(t, err)
+
+	assert.Equal(
+		t,
+		"authorization header is required",
+		response["error"],
+	)
+}
+
+func TestAdminGetOrders_NotAdmin(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Create normal user
+	// -------------------------
+
+	user :=
+		createTestUser(t)
+
+	// -------------------------
+	// Generate access token
+	// -------------------------
+
+	token, err :=
+		utils.GenerateAccessToken(
+			user.ID,
+			user.Role,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req :=
+		authenticatedRequest(
+			t,
+			http.MethodGet,
+			"/admin/orders",
+			token,
+		)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusForbidden,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err = json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"forbidden",
+		response["error"],
+	)
+}
+
+func TestAdminGetOrders_NoOrders(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	token :=
+		getAdminToken(t)
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req :=
+		authenticatedRequest(
+			t,
+			http.MethodGet,
+			"/admin/orders",
+			token,
+		)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder :=
+		httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err :=
+		json.Unmarshal(
+			recorder.Body.Bytes(),
+			&response,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Empty(
+		t,
+		response.Orders,
+	)
+
+	assert.Equal(
+		t,
+		int64(0),
+		response.Total,
+	)
+
+	assert.Equal(
+		t,
+		1,
+		response.Page,
+	)
+
+	assert.Equal(
+		t,
+		10,
+		response.PageSize,
+	)
+}
+
+func TestAdminGetOrders_SearchByUserName(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	token :=
+		getAdminToken(t)
+
+	// -------------------------
+	// Create Users
+	// -------------------------
+
+	password, err :=
+		utils.HashPassword(
+			"password123",
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	user1 := models.User{
+		Name:         "Ahmed Mohamed",
+		Email:        "ahmed@test.com",
+		PasswordHash: password,
+		Role:         "user",
+		PhoneNumber: "01289566682",
+	}
+
+	user2 := models.User{
+		Name:         "Omar Ali",
+		Email:        "omar@test.com",
+		PhoneNumber: "01289566682",
+		PasswordHash: password,
+		Role:         "user",
+	}
+
+	assert.NoError(
+		t,
+		testDB.Create(&user1).Error,
+	)
+
+	assert.NoError(
+		t,
+		testDB.Create(&user2).Error,
+	)
+
+	// -------------------------
+	// Create Orders
+	// -------------------------
+
+	createUserOrder(
+		t,
+		user1.ID,
+		"pending",
+		200,
+		2,
+	)
+
+	createUserOrder(
+		t,
+		user2.ID,
+		"pending",
+		200,
+		2,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req :=
+		authenticatedRequest(
+			t,
+			http.MethodGet,
+			"/admin/orders?user_name=Ahmed",
+			token,
+		)
+
+	// -------------------------
+	// Execute
+	// -------------------------
+
+	recorder :=
+		httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err =
+		json.Unmarshal(
+			recorder.Body.Bytes(),
+			&response,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Len(
+		t,
+		response.Orders,
+		1,
+	)
+
+	order :=
+		response.Orders[0]
+
+	assert.Equal(
+		t,
+		"Ahmed Mohamed",
+		order.UserName,
+	)
+
+	assert.Equal(
+		t,
+		"pending",
+		order.Status,
+	)
+
+	assert.Equal(
+		t,
+		"Cairo",
+		order.Address,
+	)
+
+	assert.Equal(
+		t,
+		200.0,
+		order.TotalPrice,
+	)
+
+	assert.Equal(
+		t,
+		2,
+		order.ItemsCount,
+	)
+
+	assert.NotZero(
+		t,
+		order.ID,
+	)
+
+	assert.False(
+		t,
+		order.CreatedAt.IsZero(),
+	)
+
+	assert.Equal(
+		t,
+		int64(1),
+		response.Total,
+	)
+}
+
+func TestAdminGetOrders_Pagination(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	token :=
+		getAdminToken(t)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user :=
+		createTestUser(t)
+
+	// -------------------------
+	// Create 15 orders
+	// -------------------------
+
+	for i := 0; i < 15; i++ {
+
+		createUserOrder(
+			t,
+			user.ID,
+			"pending",
+			100,
+			1,
+		)
+	}
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req :=
+		authenticatedRequest(
+			t,
+			http.MethodGet,
+			"/admin/orders?page=2&page_size=5",
+			token,
+		)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder :=
+		httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err :=
+		json.Unmarshal(
+			recorder.Body.Bytes(),
+			&response,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Len(
+		t,
+		response.Orders,
+		5,
+	)
+
+	assert.Equal(
+		t,
+		int64(15),
+		response.Total,
+	)
+
+	assert.Equal(
+		t,
+		2,
+		response.Page,
+	)
+
+	assert.Equal(
+		t,
+		5,
+		response.PageSize,
+	)
+}
+
+func TestAdminGetOrders_FilterByStatus(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	token :=
+		getAdminToken(t)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user :=
+		createTestUser(t)
+
+	// -------------------------
+	// Create orders
+	// -------------------------
+
+	createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	createUserOrder(
+		t,
+		user.ID,
+		"confirmed",
+		200,
+		2,
+	)
+
+	createUserOrder(
+		t,
+		user.ID,
+		"delivered",
+		300,
+		3,
+	)
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req :=
+		authenticatedRequest(
+			t,
+			http.MethodGet,
+			"/admin/orders?status=confirmed",
+			token,
+		)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder :=
+		httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err :=
+		json.Unmarshal(
+			recorder.Body.Bytes(),
+			&response,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Len(
+		t,
+		response.Orders,
+		1,
+	)
+
+	assert.Equal(
+		t,
+		"confirmed",
+		response.Orders[0].Status,
+	)
+
+	assert.Equal(
+		t,
+		int64(1),
+		response.Total,
+	)
+}
+
+func TestAdminGetOrders_SortedLatestFirst(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	seeder.SeedAdmin(testDB)
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user := createTestUser(t)
+
+	// -------------------------
+	// Create older order
+	// -------------------------
+
+	oldOrder := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	// Ensure different timestamps
+	time.Sleep(time.Second)
+
+	// -------------------------
+	// Create newer order
+	// -------------------------
+
+	newOrder := createUserOrder(
+		t,
+		user.ID,
+		"confirmed",
+		200,
+		2,
+	)
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req := authenticatedRequest(
+		t,
+		http.MethodGet,
+		"/admin/orders",
+		token,
+	)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Len(
+		t,
+		response.Orders,
+		2,
+	)
+
+	// Latest order should come first.
+	assert.Equal(
+		t,
+		newOrder.ID,
+		response.Orders[0].ID,
+	)
+
+	assert.Equal(
+		t,
+		oldOrder.ID,
+		response.Orders[1].ID,
+	)
+}
+
+func TestAdminGetOrders_Success(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+	seeder.SeedAdmin(testDB)
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user := createTestUser(t)
+
+	// -------------------------
+	// Create order
+	// -------------------------
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"confirmed",
+		250,
+		3,
+	)
+
+	// -------------------------
+	// Build request
+	// -------------------------
+
+	req := authenticatedRequest(
+		t,
+		http.MethodGet,
+		"/admin/orders",
+		token,
+	)
+
+	// -------------------------
+	// Execute request
+	// -------------------------
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.AdminOrdersResponse
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Len(
+		t,
+		response.Orders,
+		1,
+	)
+
+	assert.Equal(
+		t,
+		int64(1),
+		response.Total,
+	)
+
+	assert.Equal(
+		t,
+		1,
+		response.Page,
+	)
+
+	assert.Equal(
+		t,
+		10,
+		response.PageSize,
+	)
+
+	result := response.Orders[0]
+
+	assert.Equal(
+		t,
+		order.ID,
+		result.ID,
+	)
+
+	assert.Equal(
+		t,
+		user.Name,
+		result.UserName,
+	)
+
+	assert.Equal(
+		t,
+		"confirmed",
+		result.Status,
+	)
+
+	assert.Equal(
+		t,
+		"Cairo",
+		result.Address,
+	)
+
+	assert.Equal(
+		t,
+		250.0,
+		result.TotalPrice,
+	)
+
+	// Quantity was 3, so ItemsCount should be 3.
+	assert.Equal(
+		t,
+		3,
+		result.ItemsCount,
+	)
+
+	assert.False(
+		t,
+		result.CreatedAt.IsZero(),
+	)
+}
