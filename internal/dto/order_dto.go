@@ -140,3 +140,43 @@ type AdminOrdersResponse struct {
 
 	Total int64 `json:"total"`
 }
+
+type AdminOrderItemResponse struct {
+	BookID uint `json:"book_id"`
+
+	Quantity int `json:"quantity"`
+
+	Price float64 `json:"price"`
+
+	Title string `json:"title"`
+
+	Author string `json:"author"`
+
+	Publisher string `json:"publisher"`
+
+	ImagePath string `json:"image_path"`
+}
+
+type AdminOrderResponse struct {
+	ID uint `json:"id"`
+
+	Status string `json:"status"`
+
+	Address string `json:"address"`
+
+	TotalPrice float64 `json:"total_price"`
+
+	UserID uint `json:"user_id"`
+
+	UserName string `json:"user_name"`
+
+	UserEmail string `json:"user_email"`
+
+	UserPhoneNumber string `json:"user_phone_number"`
+
+	Items []AdminOrderItemResponse `json:"items"`
+
+	CreatedAt time.Time `json:"created_at"`
+
+	UpdatedAt time.Time `json:"updated_at"`
+}

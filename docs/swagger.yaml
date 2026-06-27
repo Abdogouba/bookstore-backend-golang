@@ -1,5 +1,22 @@
 basePath: /
 definitions:
+  dto.AdminOrderItemResponse:
+    properties:
+      author:
+        type: string
+      book_id:
+        type: integer
+      image_path:
+        type: string
+      price:
+        type: number
+      publisher:
+        type: string
+      quantity:
+        type: integer
+      title:
+        type: string
+    type: object
   dto.AdminOrderListItemResponse:
     properties:
       address:
@@ -15,6 +32,33 @@ definitions:
       total_price:
         type: number
       user_name:
+        type: string
+    type: object
+  dto.AdminOrderResponse:
+    properties:
+      address:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.AdminOrderItemResponse'
+        type: array
+      status:
+        type: string
+      total_price:
+        type: number
+      updated_at:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+      user_phone_number:
         type: string
     type: object
   dto.AdminOrdersResponse:
@@ -371,6 +415,57 @@ paths:
       security:
       - BearerAuth: []
       summary: View all orders
+      tags:
+      - Orders
+  /admin/orders/{id}:
+    get:
+      description: Returns a single order for the admin
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AdminOrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: View one order
       tags:
       - Orders
   /auth/login:

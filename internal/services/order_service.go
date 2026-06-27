@@ -643,3 +643,93 @@ func (s *OrderService) GetAllOrders(
 	return &response,
 		nil
 }
+
+func (s *OrderService) GetOrder(
+	orderID uint,
+) (
+	*dto.AdminOrderResponse,
+	error,
+) {
+
+	// -------------------------
+	// Get Order
+	// -------------------------
+
+	order,
+		err :=
+		s.orderRepo.GetByID(
+			orderID,
+		)
+
+	if err != nil {
+
+		return nil,
+			err
+	}
+
+	// -------------------------
+	// Build Items
+	// -------------------------
+
+	items :=
+		make(
+			[]dto.AdminOrderItemResponse,
+			0,
+			len(order.OrderItems),
+		)
+
+	for _, item := range order.OrderItems {
+
+		items =
+			append(
+				items,
+				dto.AdminOrderItemResponse{
+					BookID: item.BookID,
+
+					Quantity: item.Quantity,
+
+					Price: item.Price,
+
+					Title: item.Title,
+
+					Author: item.Author,
+
+					Publisher: item.Publisher,
+
+					ImagePath: item.ImagePath,
+				},
+			)
+	}
+
+	// -------------------------
+	// Build Response
+	// -------------------------
+
+	response :=
+		dto.AdminOrderResponse{
+			ID: order.ID,
+
+			Status: order.Status,
+
+			Address: order.ShippingAddress,
+
+			TotalPrice: order.TotalPrice,
+
+			UserID: order.User.ID,
+
+			UserName: order.User.Name,
+
+			UserEmail: order.User.Email,
+
+			UserPhoneNumber: order.User.PhoneNumber,
+
+			Items: items,
+
+			CreatedAt: order.CreatedAt,
+
+			UpdatedAt: order.UpdatedAt,
+		}
+
+	return &response,
+		nil
+}

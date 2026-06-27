@@ -4,6 +4,7 @@ import (
 	"bookstore-backend/internal/dto"
 	"bookstore-backend/internal/services"
 	"bookstore-backend/internal/utils"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -371,6 +372,94 @@ func (h *OrderHandler) GetAllOrders(
 		)
 
 	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": "internal server error",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Success
+	// -------------------------
+
+	c.JSON(
+		http.StatusOK,
+		response,
+	)
+}
+
+// GetOrder godoc
+//
+// @Summary View one order
+// @Description Returns a single order for the admin
+// @Tags Orders
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Order ID"
+// @Success 200 {object} dto.AdminOrderResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /admin/orders/{id} [get]
+func (h *OrderHandler) GetOrder(
+	c *gin.Context,
+) {
+
+	// -------------------------
+	// Parse Order ID
+	// -------------------------
+
+	orderID, err :=
+		strconv.ParseUint(
+			c.Param("id"),
+			10,
+			64,
+		)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": "invalid order id",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Service
+	// -------------------------
+
+	response, err :=
+		h.orderService.GetOrder(
+			uint(orderID),
+		)
+
+	if err != nil {
+
+		if errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		) {
+
+			c.JSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": "order not found",
+				},
+			)
+
+			return
+		}
 
 		c.JSON(
 			http.StatusInternalServerError,

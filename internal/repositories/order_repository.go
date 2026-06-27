@@ -230,3 +230,35 @@ func (r *OrderRepository) GetAllOrders(
 		total,
 		nil
 }
+
+// GetByID returns a single order
+// with its user and order items.
+func (r *OrderRepository) GetByID(
+	orderID uint,
+) (
+	*models.Order,
+	error,
+) {
+
+	var order models.Order
+
+	err :=
+		r.db.
+			Preload("User").
+			Preload("OrderItems").
+			First(
+				&order,
+				orderID,
+			).
+			Error
+
+	if err != nil {
+
+		return nil,
+			err
+	}
+
+	return &order,
+		nil
+}
+

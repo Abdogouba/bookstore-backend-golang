@@ -570,3 +570,25 @@ func createGetOrderRequest(
 
 	return req
 }
+
+func createAdminViewOrderRequest(
+	token string,
+	orderID uint,
+) *http.Request {
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("/admin/orders/%d", orderID),
+		nil,
+	)
+
+	if token != "" {
+
+		req.Header.Set(
+			"Authorization",
+			"Bearer "+token,
+		)
+	}
+
+	return req
+}

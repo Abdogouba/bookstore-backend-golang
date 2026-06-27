@@ -118,6 +118,13 @@ func SetupRoutes(
 			middleware.RoleMiddleware("admin"),
 			orderHandler.GetAllOrders,
 		)
+
+		admin.GET(
+			"/orders/:id",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("admin"),
+			orderHandler.GetOrder,
+		)
 	}
 }
 
