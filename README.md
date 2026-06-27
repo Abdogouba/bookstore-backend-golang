@@ -2,7 +2,7 @@
 
 A RESTful backend application for an online bookstore built with Go. This project follows Clean Architecture principles and implements authentication, authorization, book management, and order management features.
 
-> **Note:** This project is currently in progress. Most features have been completed, and the remaining order-related functionality is under development. ChatGPT was used as an assistant during the design and implementation process.
+> **Note:** ChatGPT was used as an assistant during the design and implementation process.
 
 ---
 
