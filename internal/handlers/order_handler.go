@@ -480,3 +480,155 @@ func (h *OrderHandler) GetOrder(
 		response,
 	)
 }
+
+// UpdateOrderStatus godoc
+//
+// @Summary Update order status
+// @Description Updates the status of an order
+// @Tags Orders
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Order ID"
+// @Param request body dto.UpdateOrderStatusRequest true "Status"
+// @Success 200 {object} dto.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /admin/orders/{id}/status [patch]
+func (h *OrderHandler) UpdateOrderStatus(
+	c *gin.Context,
+) {
+
+	// -------------------------
+	// Parse Order ID
+	// -------------------------
+
+	orderID, err :=
+		strconv.ParseUint(
+			c.Param("id"),
+			10,
+			64,
+		)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": "invalid order id",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Bind Request
+	// -------------------------
+
+	var request dto.UpdateOrderStatusRequest
+
+	if err :=
+		c.ShouldBindJSON(
+			&request,
+		); err != nil {
+
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Service
+	// -------------------------
+
+	err =
+		h.orderService.UpdateOrderStatus(
+			uint(orderID),
+			request,
+		)
+
+	if err != nil {
+
+		switch {
+
+		case errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		):
+
+			c.JSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": "order not found",
+				},
+			)
+
+			return
+
+		case err.Error() ==
+			"invalid status":
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+
+			return
+
+		case err.Error() ==
+			"order is already cancelled":
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+
+			return
+
+		case err.Error() ==
+			"order already has this status":
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+
+			return	
+		}
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": "internal server error",
+			},
+		)
+
+		return
+	}
+
+	// -------------------------
+	// Success
+	// -------------------------
+
+	c.JSON(
+		http.StatusOK,
+		dto.MessageResponse{
+			Message: "order status updated successfully",
+		},
+	)
+}

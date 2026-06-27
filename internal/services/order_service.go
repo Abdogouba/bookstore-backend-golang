@@ -733,3 +733,171 @@ func (s *OrderService) GetOrder(
 	return &response,
 		nil
 }
+
+func (s *OrderService) UpdateOrderStatus(
+	orderID uint,
+	request dto.UpdateOrderStatusRequest,
+) error {
+
+	// -------------------------
+	// Allowed Statuses
+	// -------------------------
+
+	allowedStatuses :=
+		map[string]bool{
+			"pending":          true,
+			"confirmed":        true,
+			"out_for_delivery": true,
+			"delivered":        true,
+			"cancelled":        true,
+		}
+
+	// -------------------------
+	// Validate Status
+	// -------------------------
+
+	if !allowedStatuses[
+		request.Status,
+	] {
+
+		return errors.New(
+			"invalid status",
+		)
+	}
+
+	// -------------------------
+	// Get Order
+	// -------------------------
+
+	order,
+		err :=
+		s.orderRepo.GetByID(
+			orderID,
+		)
+
+	if err != nil {
+
+		return err
+	}
+
+	// -------------------------
+	// Cannot change cancelled
+	// -------------------------
+
+	if order.Status ==
+		"cancelled" {
+
+		return errors.New(
+			"order is already cancelled",
+		)
+	}
+
+	// -------------------------
+	// Same status
+	// -------------------------
+
+	if order.Status ==
+		request.Status {
+
+		return errors.New(
+			"order already has this status",
+		)
+	}
+
+	// -------------------------
+	// Transaction
+	// -------------------------
+
+	tx :=
+		s.db.Begin()
+
+	if tx.Error != nil {
+
+		return tx.Error
+	}
+
+	defer func() {
+
+		if r := recover(); r != nil {
+
+			tx.Rollback()
+		}
+	}()
+
+	// -------------------------
+	// Restore stock
+	// if new status cancelled
+	// -------------------------
+
+	if request.Status ==
+		"cancelled" {
+
+		for _, item :=
+			range order.OrderItems {
+
+			book,
+				err :=
+				s.bookRepo.GetByID(
+					item.BookID,
+				)
+
+			if err != nil {
+
+				tx.Rollback()
+
+				return err
+			}
+
+			book.Stock +=
+				item.Quantity
+
+			err =
+				s.bookRepo.Update(
+					tx,
+					book,
+				)
+
+			if err != nil {
+
+				tx.Rollback()
+
+				return err
+			}
+		}
+	}
+
+	// -------------------------
+	// Update Status
+	// -------------------------
+
+	order.Status =
+		request.Status
+
+	err =
+		s.orderRepo.Save(
+			tx,
+			order,
+		)
+
+	if err != nil {
+
+		tx.Rollback()
+
+		return err
+	}
+
+	// -------------------------
+	// Commit
+	// -------------------------
+
+	err =
+		tx.Commit().
+			Error
+
+	if err != nil {
+
+		return err
+	}
+
+	return nil
+}

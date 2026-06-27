@@ -592,3 +592,40 @@ func createAdminViewOrderRequest(
 
 	return req
 }
+
+func createUpdateOrderStatusRequest(
+	token string,
+	orderID uint,
+	status string,
+) *http.Request {
+
+	body, _ := json.Marshal(
+		dto.UpdateOrderStatusRequest{
+			Status: status,
+		},
+	)
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf(
+			"/admin/orders/%d/status",
+			orderID,
+		),
+		bytes.NewBuffer(body),
+	)
+
+	req.Header.Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	if token != "" {
+
+		req.Header.Set(
+			"Authorization",
+			"Bearer "+token,
+		)
+	}
+
+	return req
+}

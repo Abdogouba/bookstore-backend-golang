@@ -2499,3 +2499,752 @@ func TestAdminGetOrder_Success(
 		actualItem.ImagePath,
 	)
 }
+
+func TestAdminUpdateOrderStatus_NoToken(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Create user + order
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		"",
+		order.ID,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusUnauthorized,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"authorization header is required",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_NotAdmin(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user := createTestUser(t)
+
+	token, err :=
+		utils.GenerateAccessToken(
+			user.ID,
+			user.Role,
+		)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Create order
+	// -------------------------
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusForbidden,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err = json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"forbidden",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_OrderNotFound(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		999,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusNotFound,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"order not found",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_InvalidStatus(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user + order
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"something_invalid",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusBadRequest,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"invalid status",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_AlreadyCancelled(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user + cancelled order
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"cancelled",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusBadRequest,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"order is already cancelled",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_SameStatus(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user + order
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"confirmed",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusBadRequest,
+		recorder.Code,
+	)
+
+	var response map[string]string
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"order already has this status",
+		response["error"],
+	)
+}
+
+func TestAdminUpdateOrderStatus_CancelledUpdatesStock(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user
+	// -------------------------
+
+	user := createTestUser(t)
+
+	// -------------------------
+	// Create book
+	// -------------------------
+
+	book := models.Book{
+		Title:     "Clean Code",
+		Author:    "Robert Martin",
+		Publisher: "Prentice Hall",
+		Category:  "Programming",
+		Price:     100,
+		Stock:     5,
+	}
+
+	err := testDB.Create(&book).Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Create order
+	// -------------------------
+
+	order := models.Order{
+		UserID:          user.ID,
+		Status:          "confirmed",
+		ShippingAddress: "Cairo",
+		TotalPrice:      300,
+	}
+
+	err = testDB.Create(&order).Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Create order item
+	// -------------------------
+
+	orderItem := models.OrderItem{
+		OrderID:   order.ID,
+		BookID:    book.ID,
+		Quantity:  3,
+		Price:     book.Price,
+		Title:     book.Title,
+		Author:    book.Author,
+		Publisher: book.Publisher,
+	}
+
+	err = testDB.Create(&orderItem).Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Simulate stock deduction
+	// -------------------------
+
+	book.Stock = 2
+
+	err = testDB.Save(&book).Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"cancelled",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Response
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.MessageResponse
+
+	err = json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"order status updated successfully",
+		response.Message,
+	)
+
+	// -------------------------
+	// Verify order status
+	// -------------------------
+
+	var updatedOrder models.Order
+
+	err = testDB.
+		First(
+			&updatedOrder,
+			order.ID,
+		).
+		Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"cancelled",
+		updatedOrder.Status,
+	)
+
+	// -------------------------
+	// Verify stock restored
+	// -------------------------
+
+	var updatedBook models.Book
+
+	err = testDB.
+		First(
+			&updatedBook,
+			book.ID,
+		).
+		Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		5,
+		updatedBook.Stock,
+	)
+}
+
+func TestAdminUpdateOrderStatus_Success(
+	t *testing.T,
+) {
+
+	// -------------------------
+	// Clean database
+	// -------------------------
+
+	cleanDatabase()
+
+	seeder.SeedAdmin(testDB)
+
+	// -------------------------
+	// Admin token
+	// -------------------------
+
+	token := getAdminToken(t)
+
+	// -------------------------
+	// Create user + order
+	// -------------------------
+
+	user := createTestUser(t)
+
+	order := createUserOrder(
+		t,
+		user.ID,
+		"pending",
+		100,
+		1,
+	)
+
+	// -------------------------
+	// Request
+	// -------------------------
+
+	req := createUpdateOrderStatusRequest(
+		token,
+		order.ID,
+		"confirmed",
+	)
+
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(
+		recorder,
+		req,
+	)
+
+	// -------------------------
+	// Assertions
+	// -------------------------
+
+	assert.Equal(
+		t,
+		http.StatusOK,
+		recorder.Code,
+	)
+
+	var response dto.MessageResponse
+
+	err := json.Unmarshal(
+		recorder.Body.Bytes(),
+		&response,
+	)
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"order status updated successfully",
+		response.Message,
+	)
+
+	// -------------------------
+	// Verify database
+	// -------------------------
+
+	var updatedOrder models.Order
+
+	err = testDB.
+		First(
+			&updatedOrder,
+			order.ID,
+		).
+		Error
+
+	assert.NoError(
+		t,
+		err,
+	)
+
+	assert.Equal(
+		t,
+		"confirmed",
+		updatedOrder.Status,
+	)
+}

@@ -180,3 +180,7 @@ type AdminOrderResponse struct {
 
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type UpdateOrderStatusRequest struct {
+	Status string `json:"status" binding:"required"`
+}

@@ -125,6 +125,13 @@ func SetupRoutes(
 			middleware.RoleMiddleware("admin"),
 			orderHandler.GetOrder,
 		)
+
+		admin.PATCH(
+			"/orders/:id/status",
+			middleware.AuthMiddleware(),
+			middleware.RoleMiddleware("admin"),
+			orderHandler.UpdateOrderStatus,
+		)
 	}
 }
 

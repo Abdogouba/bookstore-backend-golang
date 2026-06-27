@@ -259,6 +259,13 @@ definitions:
     - name
     - password
     type: object
+  dto.UpdateOrderStatusRequest:
+    properties:
+      status:
+        type: string
+    required:
+    - status
+    type: object
   dto.UpdateProfileRequest:
     properties:
       email:
@@ -466,6 +473,65 @@ paths:
       security:
       - BearerAuth: []
       summary: View one order
+      tags:
+      - Orders
+  /admin/orders/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the status of an order
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update order status
       tags:
       - Orders
   /auth/login:

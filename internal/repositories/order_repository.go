@@ -262,3 +262,13 @@ func (r *OrderRepository) GetByID(
 		nil
 }
 
+// Save updates an existing order.
+func (r *OrderRepository) Save(
+	tx *gorm.DB,
+	order *models.Order,
+) error {
+
+	return tx.
+		Save(order).
+		Error
+}
