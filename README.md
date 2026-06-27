@@ -181,12 +181,12 @@ Cancelled
 
 ### Orders
 
-* [ ] Create Order
-* [ ] View My Orders
-* [ ] View Single Order
-* [ ] Admin View Orders
-* [ ] Admin View Single Order
-* [ ] Admin Update Order Status
+* [x] Create Order
+* [x] View My Orders
+* [x] View Single Order
+* [x] Admin View Orders
+* [x] Admin View Single Order
+* [x] Admin Update Order Status
 * [ ] Cancel Pending Order
 
 ---
